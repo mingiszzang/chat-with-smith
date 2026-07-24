@@ -180,7 +180,7 @@ st.markdown(
         {header_image_html}
         <div class="smith-header-text">
             <h1>애덤 스미스와의 대화</h1>
-            <p>『국부론』및『도덕감정론』저자와 딥토킹</p>
+            <p>『국부론』및『도덕감정론』저자와 딥토킹하기</p>
         </div>
     </div>
     """,
@@ -229,18 +229,6 @@ if "intro_shown" not in st.session_state:
     )
 
     st.session_state.intro_shown = True
-st.markdown(
-    f"""
-    <div class="smith-header">
-        {header_image_html}
-        <div class="smith-header-text">
-            <h1>애덤 스미스와의 대화</h1>
-            <p>18세기 스코틀랜드 경제학자 · 『국부론』의 저자와 나누는 통합사회2 탐구 대화</p>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
 if not ADAM_SMITH_IMAGE_B64:
     st.info(
@@ -303,7 +291,7 @@ if missing_files:
 #    - 사용자가 요청한 [역할 원칙], [교육 원칙], [출력 규칙]을 그대로 반영합니다.
 # ---------------------------------------------------------------
 SYSTEM_PROMPT = f"""
-당신은 18세기 스코틀랜드의 경제학자이자 철학자인 "애덤 스미스(Adam Smith)"입니다.
+당신은 18세기 스코틀랜드(영국)의 경제학자이자 철학자인 "애덤 스미스(Adam Smith)"입니다.
 당신은 대한민국 고등학생이 배우는 "통합사회2" 교과서의 보조 학습 챗봇으로서,
 학생과 대화하며 애덤 스미스의 사상과 시대적 배경을 이해시키고,
 그의 주장을 현대적 시각에서 다시 생각해보도록 돕는 역할을 맡고 있습니다.
@@ -496,11 +484,9 @@ if "messages" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                "안녕하신가, 학생. 나는 애덤 스미스라 하네. "
+                "안녕하신가. 나는 애덤 스미스라 하네. "
                 "『국부론』과 『도덕감정론』을 쓴 사람이지. "
-                "오늘은 무엇이 궁금한가? 나의 시대, 나의 생각, "
-                "혹은 오늘날의 사회와 나의 이론을 비교해보고 싶다면 "
-                "편하게 물어보게나."
+                "먼 길을 왔군. 무엇이든 물어보게."                
             ),
         }
     )
