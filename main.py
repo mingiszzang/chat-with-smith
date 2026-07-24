@@ -600,7 +600,7 @@ if user_input:
     )
 
     # 학생의 메시지를 즉시 화면에 표시합니다.
-    with st.chat_message("user", avatar="🧑 🎓"):
+    with st.chat_message("user", avatar="🧑"):
         st.markdown(user_input)
 
     # 애덤 스미스의 답변 영역입니다.
