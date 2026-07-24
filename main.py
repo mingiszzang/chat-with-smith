@@ -188,7 +188,8 @@ st.markdown(
 )
 
 # 👇 여기로 이동
-if "intro_shown" not in st.session_state:
+# 첫 화면(애덤 스미스의 첫 인사만 있을 때)만 시간여행 카드 표시
+if len(st.session_state.messages) <= 1:
 
     st.markdown(
         """
@@ -222,13 +223,11 @@ if "intro_shown" not in st.session_state:
         <p style="font-size:20px;">
         애덤 스미스가 당신을 기다리고 있습니다.
         </p>
-       
+
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    st.session_state.intro_shown = True
 
 if not ADAM_SMITH_IMAGE_B64:
     st.info(
