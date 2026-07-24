@@ -189,46 +189,6 @@ st.markdown(
 
 # 👇 여기로 이동
 # 첫 화면(애덤 스미스의 첫 인사만 있을 때)만 시간여행 카드 표시
-if len(st.session_state.messages) <= 1:
-
-    st.markdown(
-        """
-        <div style="
-        background:rgba(255,248,235,.92);
-        border:2px solid #8b5e34;
-        border-radius:18px;
-        padding:22px;
-        margin-bottom:24px;
-        text-align:center;
-        ">
-
-        <h2>⌛ 시간을 달리는 경제 탐험가 ⌛</h2>
-
-        <h3>시간여행이 완료되었습니다.</h3>
-
-        <hr>
-
-        <p style="font-size:18px;">
-        📍 <b>현재 위치</b><br>
-        Edinburgh, Scotland
-        </p>
-
-        <p style="font-size:18px;">
-        📅 <b>현재 연도</b><br>
-        1776년
-        </p>
-
-        <hr>
-
-        <p style="font-size:20px;">
-        애덤 스미스가 당신을 기다리고 있습니다.
-        </p>
-
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 if not ADAM_SMITH_IMAGE_B64:
     st.info(
         f"ℹ️ '{ADAM_SMITH_AVATAR_PATH}' 위치에서 초상화 이미지를 찾지 못했어요. "
@@ -575,6 +535,46 @@ if "messages" not in st.session_state:
                 "먼 길을 왔군. 준비가 되면 무엇이든 물어보게."                
             ),
         }
+    )
+
+if len(st.session_state.messages) <= 1:
+
+    st.markdown(
+        """
+        <div style="
+        background:rgba(255,248,235,.92);
+        border:2px solid #8b5e34;
+        border-radius:18px;
+        padding:22px;
+        margin-bottom:24px;
+        text-align:center;
+        ">
+
+        <h2>⌛ 시간을 달리는 경제 탐험가 ⌛</h2>
+
+        <h3>시간여행이 완료되었습니다.</h3>
+
+        <hr>
+
+        <p style="font-size:18px;">
+        📍 <b>현재 위치</b><br>
+        Edinburgh, Scotland
+        </p>
+
+        <p style="font-size:18px;">
+        📅 <b>현재 연도</b><br>
+        1776년
+        </p>
+
+        <hr>
+
+        <p style="font-size:20px;">
+        애덤 스미스가 당신을 기다리고 있습니다.
+        </p>
+
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 # 사이드바에 '대화 초기화' 버튼을 두어, 새로 시작하고 싶을 때 사용할 수 있게 합니다.
