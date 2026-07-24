@@ -18,7 +18,7 @@ import os
 import base64
 import streamlit as st
 from openai import OpenAI
-from PIL import image
+from PIL import Image
 
 # ---------------------------------------------------------------
 # 1. 페이지 기본 설정
