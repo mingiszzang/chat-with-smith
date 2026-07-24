@@ -627,9 +627,9 @@ with st.sidebar:
         st.session_state.gold_coins == 3
         and not st.session_state.badge_animation_shown
     ):
-    st.balloons()
-    st.success("🏆 경제 탐험 완료!")
-    st.session_state.badge_animation_shown = True
+        st.balloons()
+        st.success("🏆 경제 탐험 완료!")
+        st.session_state.badge_animation_shown = True
 
     st.divider()
     
