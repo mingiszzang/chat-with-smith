@@ -463,6 +463,67 @@ def get_client():
 
 client = get_client()
 
+def check_mission(user_question):
+
+    judge_prompt = f"""
+학생 질문:
+
+{user_question}
+
+다음 세 가지 가운데 어떤 주제에 해당하는지만 판단하라.
+
+1 division
+- 분업이 생산성을 높이는 이유
+
+2 invisible
+- 보이지 않는 손
+- 시장가격
+- 시장 가격
+- 경쟁
+
+3 government
+- 정부 역할
+- 중상주의 정부와의 차이
+- 국방
+- 사법
+- 공공사업
+
+답은 반드시
+
+division
+invisible
+government
+none
+
+중 하나만 출력.
+"""
+
+    try:
+
+        result = client.chat.completions.create(
+
+            model="solar-open2",
+
+            messages=[
+                {
+                    "role":"system",
+                    "content":"너는 분류기이다."
+                },
+                {
+                    "role":"user",
+                    "content":judge_prompt
+                }
+            ],
+
+            stream=False,
+            reasoning_effort="minimal"
+        )
+
+        return result.choices[0].message.content.strip().lower()
+
+    except:
+        return "none"
+
 # API 키가 없다면, 화면에 친절한 한국어 안내 메시지를 보여줍니다.
 if client is None:
     st.error(
@@ -480,6 +541,29 @@ if client is None:
 #    - messages 리스트 안에 {"role": ..., "content": ...} 형태로 쌓입니다.
 # ---------------------------------------------------------------
 if "messages" not in st.session_state:
+# ==========================================================
+# 경제 탐험 미션
+# ==========================================================
+MISSION_TOPICS = {
+    "division": {
+        "title": "분업과 생산성",
+        "description": "분업은 어떻게 노동 생산성을 높이나요?"
+    },
+    "invisible": {
+        "title": "보이지 않는 손",
+        "description": "보이지 않는 손은 어떻게 시장을 조정하나요?"
+    },
+    "government": {
+        "title": "정부의 역할",
+        "description": "정부의 역할은 중상주의 시대의 정부 역할과 어떻게 다른가요?"
+    }
+}
+
+if "gold_coins" not in st.session_state:
+    st.session_state.gold_coins = 0
+
+if "completed_missions" not in st.session_state:
+    st.session_state.completed_missions = set()
     st.session_state.messages = []
     # 처음 접속했을 때 애덤 스미스가 먼저 인사를 건네도록 설정합니다.
     st.session_state.messages.append(
@@ -504,8 +588,41 @@ with st.sidebar:
     if st.button("🔄 대화 새로 시작하기"):
         st.session_state.messages = []
         st.rerun()
+   
+    st.divider()
+
+    st.subheader("🧭 경제 탐험 현황")
+
+    st.markdown(
+    """
+    시간을 달리는 경제 탐험가가 되어
+    애덤 스미스와 대화하며 핵심 사상을 탐구해 보세요.
+    """
+    )
+
+    st.metric(
+        "🪙 Gold Coins",
+        f"{st.session_state.gold_coins} / 3"
+    )
+
+    progress = st.session_state.gold_coins / 3
+    st.progress(progress)
+
+    st.markdown("### 🎯 핵심 탐험")
+
+    for key, mission in MISSION_TOPICS.items():
+
+        if key in st.session_state.completed_missions:
+            st.success(f"✅ {mission['title']}")
+        else:
+            st.write(f"⬜ {mission['title']}")
+
+    if st.session_state.gold_coins == 3:
+        st.balloons()
+        st.success("🏆 경제 탐험 완료!")
 
     st.divider()
+    
     # -----------------------------------------------------------
     # 추론(reasoning) 모드 켜고 끄기
     #   - Solar 모델은 답변 전에 내부적으로 여러 단계를 더 생각하는
@@ -587,6 +704,22 @@ if user_input:
 
             # 스트리밍이 끝나면 커서를 떼고 최종 답변을 보여줍니다.
             placeholder.markdown(full_response)
+
+            mission = check_mission(user_input)
+
+            if (
+                mission in MISSION_TOPICS
+                and mission not in st.session_state.completed_missions
+            ):
+
+                st.session_state.completed_missions.add(mission)
+
+                st.session_state.gold_coins += 1
+
+                st.toast(
+                    f"🪙 Gold Coin 획득!\n\n{MISSION_TOPICS[mission]['title']}",
+                    icon="✨"
+                )
 
         except Exception as e:
             # API 호출이 실패했을 때(네트워크 오류, 키 오류 등),
