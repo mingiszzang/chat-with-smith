@@ -174,51 +174,66 @@ else:
         'display:flex; align-items:center; justify-content:center;">🧑‍🏫</div>'
     )
 
-if len(st.session_state.messages) == 0:
+st.markdown(
+    f"""
+    <div class="smith-header">
+        {header_image_html}
+        <div class="smith-header-text">
+            <h1>애덤 스미스와의 대화</h1>
+            <p>18세기 스코틀랜드 경제학자 · 『국부론』의 저자와 나누는 통합사회2 탐구 대화</p>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# 👇 여기로 이동
+if "intro_shown" not in st.session_state:
 
     st.markdown(
         """
-<div style="
-background:rgba(255,248,235,.92);
-border:2px solid #8b5e34;
-border-radius:18px;
-padding:22px;
-margin-bottom:24px;
-text-align:center;
-">
+        <div style="
+        background:rgba(255,248,235,.92);
+        border:2px solid #8b5e34;
+        border-radius:18px;
+        padding:22px;
+        margin-bottom:24px;
+        text-align:center;
+        ">
 
-<h2>⌛ 시간을 달리는 경제 탐험가</h2>
+        <h2>⌛ 시간을 달리는 경제 탐험가</h2>
 
-<h3>시간여행이 완료되었습니다.</h3>
+        <h3>시간여행이 완료되었습니다.</h3>
 
-<hr>
+        <hr>
 
-<p style="font-size:18px;">
-📍 <b>현재 위치</b><br>
-Edinburgh, Scotland
-</p>
+        <p style="font-size:18px;">
+        📍 <b>현재 위치</b><br>
+        Edinburgh, Scotland
+        </p>
 
-<p style="font-size:18px;">
-📅 <b>현재 연도</b><br>
-1776년
-</p>
+        <p style="font-size:18px;">
+        📅 <b>현재 연도</b><br>
+        1776년
+        </p>
 
-<hr>
+        <hr>
 
-<p style="font-size:20px;">
-애덤 스미스가 자네를 기다리고 있네.
-</p>
+        <p style="font-size:20px;">
+        애덤 스미스가 당신을 기다리고 있습니다.
+        </p>
 
-<p style="font-style:italic;font-size:22px;">
-"먼 길을 왔군.<br>
-무엇이든 물어보게."
-</p>
+        <p style="font-style:italic;font-size:22px;">
+        "먼 길을 왔군.<br>
+        무엇이든 물어보게."
+        </p>
 
-</div>
-""",
+        </div>
+        """,
         unsafe_allow_html=True,
-    )    
+    )
 
+    st.session_state.intro_shown = True
 st.markdown(
     f"""
     <div class="smith-header">
