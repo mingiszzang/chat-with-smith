@@ -523,6 +523,9 @@ if "gold_coins" not in st.session_state:
 if "completed_missions" not in st.session_state:
     st.session_state.completed_missions = set()
 
+if "badge_animation_shown" not in st.session_state:
+    st.session_state.badge_animation_shown = False
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
     # 처음 접속했을 때 애덤 스미스가 먼저 인사를 건네도록 설정합니다.
@@ -620,6 +623,13 @@ with st.sidebar:
     if st.session_state.gold_coins == 3:
         st.balloons()
         st.success("🏆 경제 탐험 완료!")
+    if (
+        st.session_state.gold_coins == 3
+        and not st.session_state.badge_animation_shown
+    ):
+    st.balloons()
+    st.success("🏆 경제 탐험 완료!")
+    st.session_state.badge_animation_shown = True
 
     st.divider()
     
