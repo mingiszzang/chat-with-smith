@@ -180,7 +180,7 @@ st.markdown(
         {header_image_html}
         <div class="smith-header-text">
             <h1>애덤 스미스와의 대화</h1>
-            <p>18세기 스코틀랜드 경제학자 · 『국부론』의 저자와 나누는 통합사회2 탐구 대화</p>
+            <p>『국부론』및『도덕감정론』저자와 딥토킹</p>
         </div>
     </div>
     """,
@@ -201,7 +201,7 @@ if "intro_shown" not in st.session_state:
         text-align:center;
         ">
 
-        <h2>⌛ 시간을 달리는 경제 탐험가</h2>
+        <h2>⌛ 시간을 달리는 경제 탐험가 ⌛</h2>
 
         <h3>시간여행이 완료되었습니다.</h3>
 
@@ -222,12 +222,7 @@ if "intro_shown" not in st.session_state:
         <p style="font-size:20px;">
         애덤 스미스가 당신을 기다리고 있습니다.
         </p>
-
-        <p style="font-style:italic;font-size:22px;">
-        "먼 길을 왔군.<br>
-        무엇이든 물어보게."
-        </p>
-
+       
         </div>
         """,
         unsafe_allow_html=True,
@@ -254,8 +249,8 @@ if not ADAM_SMITH_IMAGE_B64:
     )
 
 st.caption(
-    "💡 이 챗봇은 통합사회2 교과서 보조 학습 자료입니다. "
-    "애덤 스미스의 사상과 시대 배경을 자료에 근거해 답하고, "
+    "💡 이 챗봇은 고등학교 통합사회2 학습을 돕는 보조자료입니다. "
+    "애덤 스미스가 살던 시대적 배경과 그의 주장을 읽기자료에 근거해 답하고, "
     "여러분의 생각을 넓혀주는 질문을 함께 던집니다."
 )
 
