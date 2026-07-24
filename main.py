@@ -42,6 +42,7 @@ st.set_page_config(
 # ---------------------------------------------------------------
 BASE_DIR = Path(__file__).parent
 ADAM_SMITH_AVATAR_PATH = BASE_DIR / "data" / "adam_smith.png"
+BACKGROUND_PATH = BASE_DIR / "data" / "parchment_background.png"
 
 
 @st.cache_data(show_spinner=False)
@@ -59,6 +60,7 @@ def load_image_as_base64(path):
 
 
 ADAM_SMITH_IMAGE_B64 = load_image_as_base64(str(ADAM_SMITH_AVATAR_PATH))
+BACKGROUND_IMAGE_B64 = load_image_as_base64(str(BACKGROUND_PATH))
 
 HEADER_IMAGE_SRC = ADAM_SMITH_IMAGE_B64 or ""
 
@@ -74,50 +76,89 @@ ADAM_SMITH_CHAT_AVATAR = (
 #    - 18세기 느낌이 나도록 세피아 톤(갈색 계열)의 색을 사용했습니다.
 # ---------------------------------------------------------------
 st.markdown(
-    """
-    <style>
-    /* 전체 배경: 옛 종이 느낌의 연한 베이지색 */
-    .stApp {
-        background: linear-gradient(180deg, #f5ecd9 0%, #f0e4c8 100%);
-    }
+    f"""
+<style>
 
-    /* 상단 제목 카드 */
-    .smith-header {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        background-color: #fffaf0;
-        border: 2px solid #8b5e34;
-        border-radius: 16px;
-        padding: 16px 22px;
-        margin-bottom: 18px;
-        box-shadow: 3px 3px 0px rgba(139, 94, 52, 0.25);
-    }
-    .smith-header img {
-        width: 78px;
-        height: 78px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #8b5e34;
-    }
-    .smith-header-text h1 {
-        font-size: 22px;
-        margin: 0;
-        color: #4a2f14;
-    }
-    .smith-header-text p {
-        font-size: 14px;
-        margin: 4px 0 0 0;
-        color: #6b4a26;
-    }
+/* ==========================
+   전체 배경
+========================== */
 
-    /* 채팅 말풍선 살짝 꾸미기 */
-    [data-testid="stChatMessage"] {
-        border-radius: 14px;
-        padding: 4px 6px;
-    }
-    </style>
-    """,
+.stApp {{
+    background-image: url("{BACKGROUND_IMAGE_B64}");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}}
+
+/* 메인 컨테이너 */
+
+.main .block-container {{
+    background: rgba(255,250,238,0.78);
+    padding: 2rem 2.3rem;
+    border-radius: 18px;
+    border: 2px solid rgba(120,85,40,0.25);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}}
+
+/* 헤더 */
+
+.smith-header {{
+    display:flex;
+    align-items:center;
+    gap:18px;
+
+    background:rgba(255,248,235,0.90);
+
+    border:2px solid #8b5e34;
+
+    border-radius:18px;
+
+    padding:18px;
+
+    margin-bottom:20px;
+}}
+
+.smith-header img{{
+    width:78px;
+    height:78px;
+    border-radius:50%;
+    border:3px solid #8b5e34;
+}}
+
+.smith-header h1{{
+    color:#4a2f14;
+}}
+
+.smith-header p{{
+    color:#6b4a26;
+}}
+
+/* 채팅 */
+
+[data-testid="stChatMessage"] {{
+
+    background:rgba(255,252,245,0.72);
+
+    border-radius:18px;
+
+    border:1px solid rgba(120,85,40,.25);
+
+    margin-bottom:10px;
+
+    padding:8px;
+}}
+
+/* 입력창 */
+
+[data-testid="stChatInput"] {{
+
+    background:rgba(255,251,240,.9);
+
+    border-radius:18px;
+}}
+
+</style>
+""",
     unsafe_allow_html=True,
 )
 
@@ -132,6 +173,51 @@ else:
         '<div style="font-size:48px; width:78px; height:78px; '
         'display:flex; align-items:center; justify-content:center;">🧑‍🏫</div>'
     )
+
+if len(st.session_state.messages) == 0:
+
+    st.markdown(
+        """
+<div style="
+background:rgba(255,248,235,.92);
+border:2px solid #8b5e34;
+border-radius:18px;
+padding:22px;
+margin-bottom:24px;
+text-align:center;
+">
+
+<h2>⌛ 시간을 달리는 경제 탐험가</h2>
+
+<h3>시간여행이 완료되었습니다.</h3>
+
+<hr>
+
+<p style="font-size:18px;">
+📍 <b>현재 위치</b><br>
+Edinburgh, Scotland
+</p>
+
+<p style="font-size:18px;">
+📅 <b>현재 연도</b><br>
+1776년
+</p>
+
+<hr>
+
+<p style="font-size:20px;">
+애덤 스미스가 자네를 기다리고 있네.
+</p>
+
+<p style="font-style:italic;font-size:22px;">
+"먼 길을 왔군.<br>
+무엇이든 물어보게."
+</p>
+
+</div>
+""",
+        unsafe_allow_html=True,
+    )    
 
 st.markdown(
     f"""
