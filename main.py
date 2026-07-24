@@ -18,7 +18,7 @@ import os
 import base64
 import streamlit as st
 from openai import OpenAI
-from PIL import Image
+from pathlib import Path
 
 # ---------------------------------------------------------------
 # 1. 페이지 기본 설정
@@ -40,33 +40,32 @@ st.set_page_config(
 #    - 반면 위쪽 헤더는 순수 HTML(<img src="...">)로 그리기 때문에,
 #      로컬 경로를 못 읽으므로 이미지를 base64 문자열로 바꿔서 넣어줍니다.
 # ---------------------------------------------------------------
-ADAM_SMITH_CHAT_AVATAR = Image.open("data/adam_smith.png")
+BASE_DIR = Path(__file__).parent
+ADAM_SMITH_AVATAR_PATH = BASE_DIR / "data" / "adam_smith.png"
 
 
 @st.cache_data(show_spinner=False)
-def load_image_as_base64(path: str):
-    """이미지 파일을 읽어서 HTML <img> 태그에 바로 넣을 수 있는
-    base64 문자열로 변환합니다. 파일이 없으면 None을 반환합니다.
-    확장자(.png / .jpg / .jpeg)에 맞춰 MIME 타입을 자동으로 맞춰줍니다."""
+def load_image_as_base64(path):
     if not os.path.exists(path):
         return None
 
     ext = os.path.splitext(path)[1].lower()
-    mime_type = "image/png" if ext == ".png" else "image/jpeg"
+    mime = "image/png" if ext == ".png" else "image/jpeg"
 
     with open(path, "rb") as f:
         encoded = base64.b64encode(f.read()).decode("utf-8")
-    return f"data:{mime_type};base64,{encoded}"
+
+    return f"data:{mime};base64,{encoded}"
 
 
-ADAM_SMITH_IMAGE_B64 = load_image_as_base64(ADAM_SMITH_AVATAR_PATH)
-# 혹시 이미지 파일을 못 찾을 경우를 대비한 대체(fallback) 이모지
-HEADER_IMAGE_SRC = ADAM_SMITH_IMAGE_B64 if ADAM_SMITH_IMAGE_B64 else ""
+ADAM_SMITH_IMAGE_B64 = load_image_as_base64(str(ADAM_SMITH_AVATAR_PATH))
 
-# st.chat_message의 avatar 옵션에는 로컬 "파일 경로"를 그대로 넘길 수 있습니다.
-# 파일이 존재할 때만 경로를 쓰고, 없으면 이모지로 대체합니다.
+HEADER_IMAGE_SRC = ADAM_SMITH_IMAGE_B64 or ""
+
 ADAM_SMITH_CHAT_AVATAR = (
-    ADAM_SMITH_AVATAR_PATH if os.path.exists(ADAM_SMITH_AVATAR_PATH) else "🧑‍🏫"
+    str(ADAM_SMITH_AVATAR_PATH)
+    if ADAM_SMITH_AVATAR_PATH.exists()
+    else "🧑‍🏫"
 )
 
 # ---------------------------------------------------------------
