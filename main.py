@@ -729,25 +729,11 @@ if user_input:
                     f"🪙 Gold Coin 획득!\n\n{MISSION_TOPICS[mission]['title']}",
                     icon="✨"
                 )
-             if (
-                 mission in MISSION_TOPICS
-                 and mission not in st.session_state.completed_missions
-             ):
 
-                 st.session_state.completed_missions.add(mission)
-
-                 st.session_state.gold_coins += 1
-
-                 st.toast(
-                     f"🪙 Gold Coin 획득!\n\n{MISSION_TOPICS[mission]['title']}",
-                     icon="✨"
-                 )
-
-                 if st.session_state.gold_coins == 3:
-                     st.session_state.badge_animation_shown = True
-                     st.balloons()
+                if st.session_state.gold_coins == 3:
+                   st.success("🏆 경제 탐험 완료!")
+                      
      
-
         except Exception as e:
             # API 호출이 실패했을 때(네트워크 오류, 키 오류 등),
             # 에러 화면을 그대로 보여주지 않고 친절한 한국어 메시지를 보여줍니다.
