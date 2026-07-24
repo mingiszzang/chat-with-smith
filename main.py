@@ -15,6 +15,7 @@
 """
 
 import os
+import base64
 import streamlit as st
 from openai import OpenAI
 
@@ -28,11 +29,43 @@ st.set_page_config(
     layout="centered",
 )
 
-# 애덤 스미스 초상화 이미지 (위키미디어 공용, 퍼블릭 도메인 초상화)
-# 만약 이미지가 뜨지 않더라도 앱 기능에는 문제가 없습니다.
-ADAM_SMITH_IMAGE_URL = (
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/"
-    "AdamSmith.jpg/330px-AdamSmith.jpg"
+# ---------------------------------------------------------------
+# 1-1. 애덤 스미스 초상화 이미지 불러오기
+#    - data/adam_smith.png 라는 로컬 이미지 파일을 사용합니다.
+#      (외부 URL 대신 저장소에 포함된 이미지를 사용하므로,
+#       인터넷 상황과 상관없이 항상 얼굴이 안정적으로 보입니다.)
+#    - st.chat_message의 avatar 옵션은 "로컬 파일 경로"를 그대로 받을 수 있어서
+#      ADAM_SMITH_AVATAR_PATH 변수를 채팅 아바타에 바로 사용합니다.
+#    - 반면 위쪽 헤더는 순수 HTML(<img src="...">)로 그리기 때문에,
+#      로컬 경로를 못 읽으므로 이미지를 base64 문자열로 바꿔서 넣어줍니다.
+# ---------------------------------------------------------------
+ADAM_SMITH_AVATAR_PATH = "data/adam_smith.png"
+
+
+@st.cache_data(show_spinner=False)
+def load_image_as_base64(path: str):
+    """이미지 파일을 읽어서 HTML <img> 태그에 바로 넣을 수 있는
+    base64 문자열로 변환합니다. 파일이 없으면 None을 반환합니다.
+    확장자(.png / .jpg / .jpeg)에 맞춰 MIME 타입을 자동으로 맞춰줍니다."""
+    if not os.path.exists(path):
+        return None
+
+    ext = os.path.splitext(path)[1].lower()
+    mime_type = "image/png" if ext == ".png" else "image/jpeg"
+
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+ADAM_SMITH_IMAGE_B64 = load_image_as_base64(ADAM_SMITH_AVATAR_PATH)
+# 혹시 이미지 파일을 못 찾을 경우를 대비한 대체(fallback) 이모지
+HEADER_IMAGE_SRC = ADAM_SMITH_IMAGE_B64 if ADAM_SMITH_IMAGE_B64 else ""
+
+# st.chat_message의 avatar 옵션에는 로컬 "파일 경로"를 그대로 넘길 수 있습니다.
+# 파일이 존재할 때만 경로를 쓰고, 없으면 이모지로 대체합니다.
+ADAM_SMITH_CHAT_AVATAR = (
+    ADAM_SMITH_AVATAR_PATH if os.path.exists(ADAM_SMITH_AVATAR_PATH) else "🧑‍🏫"
 )
 
 # ---------------------------------------------------------------
@@ -91,10 +124,19 @@ st.markdown(
 # ---------------------------------------------------------------
 # 3. 상단 헤더 (애덤 스미스 이미지 + 소개 문구)
 # ---------------------------------------------------------------
+if ADAM_SMITH_IMAGE_B64:
+    header_image_html = f'<img src="{HEADER_IMAGE_SRC}" alt="Adam Smith">'
+else:
+    # 이미지 파일을 찾지 못했을 때는 이모지로 대체해서 앱이 깨지지 않게 합니다.
+    header_image_html = (
+        '<div style="font-size:48px; width:78px; height:78px; '
+        'display:flex; align-items:center; justify-content:center;">🧑‍🏫</div>'
+    )
+
 st.markdown(
     f"""
     <div class="smith-header">
-        <img src="{ADAM_SMITH_IMAGE_URL}" alt="Adam Smith">
+        {header_image_html}
         <div class="smith-header-text">
             <h1>애덤 스미스와의 대화</h1>
             <p>18세기 스코틀랜드 경제학자 · 『국부론』의 저자와 나누는 통합사회2 탐구 대화</p>
@@ -103,6 +145,12 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+if not ADAM_SMITH_IMAGE_B64:
+    st.info(
+        f"ℹ️ '{ADAM_SMITH_AVATAR_PATH}' 위치에서 초상화 이미지를 찾지 못했어요. "
+        "data 폴더에 adam_smith.png 파일이 있는지 확인해주세요."
+    )
 
 st.caption(
     "💡 이 챗봇은 통합사회2 교과서 보조 학습 자료입니다. "
@@ -269,6 +317,26 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
+    st.divider()
+    # -----------------------------------------------------------
+    # 추론(reasoning) 모드 켜고 끄기
+    #   - Solar 모델은 답변 전에 내부적으로 여러 단계를 더 생각하는
+    #     "추론 모드"를 지원합니다. 이 모드를 켜면 답변 품질이 조금
+    #     더 좋아질 수 있지만, 그만큼 응답 속도가 느려집니다.
+    #   - 이 챗봇은 답변을 3~5문장으로 짧게 하도록 설계되어 있어서
+    #     기본값은 "꺼짐"(minimal)으로 두어 빠른 응답을 우선합니다.
+    # -----------------------------------------------------------
+    use_deep_reasoning = st.toggle(
+        "🧠 심화 추론 모드 (답변이 느려질 수 있어요)",
+        value=False,
+        help=(
+            "켜면 애덤 스미스가 답변 전에 더 깊이 생각한 뒤 답합니다. "
+            "복잡한 질문에는 도움이 되지만 응답 속도가 느려집니다. "
+            "평소에는 꺼두는 것을 추천해요."
+        ),
+    )
+    REASONING_EFFORT = "high" if use_deep_reasoning else "minimal"
+
     with st.expander("📚 참고 자료 목록 보기"):
         for f in DATA_FILES:
             status = "✅ 로드됨" if f not in missing_files else "❌ 없음"
@@ -280,7 +348,7 @@ with st.sidebar:
 #    - user(학생)의 말풍선에는 기본 아바타를 사용합니다.
 # ---------------------------------------------------------------
 for msg in st.session_state.messages:
-    avatar = ADAM_SMITH_IMAGE_URL if msg["role"] == "assistant" else "🙋"
+    avatar = ADAM_SMITH_CHAT_AVATAR if msg["role"] == "assistant" else "🙋"
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
@@ -304,7 +372,7 @@ if user_input:
     ]
 
     # 9-3. 애덤 스미스(assistant)의 답변을 스트리밍으로 받아 보여줍니다.
-    with st.chat_message("assistant", avatar=ADAM_SMITH_IMAGE_URL):
+    with st.chat_message("assistant", avatar=ADAM_SMITH_CHAT_AVATAR):
         placeholder = st.empty()  # 실시간으로 글자를 채워나갈 빈 공간
         full_response = ""
 
@@ -315,6 +383,10 @@ if user_input:
                 model="solar-open2",  # 모델 이름은 그대로 사용해야 합니다.
                 messages=api_messages,
                 stream=True,
+                # reasoning_effort: 추론 강도를 조절하는 옵션입니다.
+                # "minimal"이면 깊은 추론 없이 바로 답해서 응답 속도가 빨라지고,
+                # "high"면 더 깊이 생각한 뒤 답해서 속도는 느리지만 품질이 좋아질 수 있습니다.
+                reasoning_effort=REASONING_EFFORT,
             )
 
             for chunk in stream:
