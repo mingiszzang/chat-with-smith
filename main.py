@@ -18,6 +18,7 @@ import os
 import base64
 import streamlit as st
 from openai import OpenAI
+from PIL import image
 
 # ---------------------------------------------------------------
 # 1. 페이지 기본 설정
@@ -39,7 +40,7 @@ st.set_page_config(
 #    - 반면 위쪽 헤더는 순수 HTML(<img src="...">)로 그리기 때문에,
 #      로컬 경로를 못 읽으므로 이미지를 base64 문자열로 바꿔서 넣어줍니다.
 # ---------------------------------------------------------------
-ADAM_SMITH_AVATAR_PATH = "data/adam_smith.png"
+ADAM_SMITH_CHAT_AVATAR = Image.open("data/adam_smith.png")
 
 
 @st.cache_data(show_spinner=False)
