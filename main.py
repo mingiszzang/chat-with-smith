@@ -544,20 +544,20 @@ if "messages" not in st.session_state:
 # ==========================================================
 # 경제 탐험 미션
 # ==========================================================
-MISSION_TOPICS = {
-    "division": {
-        "title": "분업과 생산성",
-        "description": "분업은 어떻게 노동 생산성을 높이나요?"
-    },
-    "invisible": {
-        "title": "보이지 않는 손",
-        "description": "보이지 않는 손은 어떻게 시장을 조정하나요?"
-    },
-    "government": {
-        "title": "정부의 역할",
-        "description": "정부의 역할은 중상주의 시대의 정부 역할과 어떻게 다른가요?"
+    MISSION_TOPICS = {
+        "division": {
+            "title": "분업과 생산성",
+            "description": "분업은 어떻게 노동 생산성을 높이나요?"
+        },
+        "invisible": {
+            "title": "보이지 않는 손",
+            "description": "보이지 않는 손은 어떻게 시장을 조정하나요?"
+        },
+        "government": {
+            "title": "정부의 역할",
+            "description": "정부의 역할은 중상주의 시대의 정부 역할과 어떻게 다른가요?"
+        }
     }
-}
 
 if "gold_coins" not in st.session_state:
     st.session_state.gold_coins = 0
