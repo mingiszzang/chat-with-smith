@@ -11,14 +11,20 @@
  - 학생이 채팅창에 질문을 입력하면, 애덤 스미스 역할을 맡은 AI가
    미리 정해진 "역할/교육 원칙"에 따라 답변을 스트리밍(실시간 타이핑 효과)
    으로 보여줍니다.
+ - [신규] 학생과 애덤 스미스의 대화는 교사가 확인할 수 있도록
+   구글 스프레드시트에 실시간으로(질문-답변 한 쌍이 생길 때마다) 기록됩니다.
 =====================================================================
 """
 
 import os
 import base64
+from datetime import datetime
 import streamlit as st
 from openai import OpenAI
 from pathlib import Path
+
+# requests: 구글 앱스크립트(Apps Script) 웹앱으로 대화 기록을 전송하기 위한 라이브러리입니다.
+import requests
 
 # ---------------------------------------------------------------
 # 1. 페이지 기본 설정
@@ -187,8 +193,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 👇 여기로 이동
-# 첫 화면(애덤 스미스의 첫 인사만 있을 때)만 시간여행 카드 표시
 if not ADAM_SMITH_IMAGE_B64:
     st.info(
         f"ℹ️ '{ADAM_SMITH_AVATAR_PATH}' 위치에서 초상화 이미지를 찾지 못했어요. "
@@ -203,11 +207,6 @@ st.caption(
 
 # ---------------------------------------------------------------
 # 4. data 폴더의 참고 자료(.md 파일) 불러오기
-#    - 같은 저장소(repository) 안의 data 폴더에 있는
-#      01_profile.md, 02_background.md, 03_wealth_of_nations.md
-#      세 파일을 읽어서, AI가 우선적으로 참고할 자료로 활용합니다.
-#    - st.cache_data를 사용하면 앱이 다시 실행될 때마다 파일을
-#      새로 읽지 않고 한 번 읽은 내용을 재사용해서 속도가 빨라집니다.
 # ---------------------------------------------------------------
 DATA_FILES = [
     "data/01_profile.md",
@@ -235,7 +234,6 @@ def load_reference_materials():
 
 reference_text, missing_files = load_reference_materials()
 
-# 자료 파일이 없다면 화면에 살짝 알려줍니다 (앱이 멈추지는 않습니다).
 if missing_files:
     st.warning(
         "⚠️ 다음 참고 자료 파일을 찾을 수 없어요: "
@@ -246,8 +244,6 @@ if missing_files:
 
 # ---------------------------------------------------------------
 # 5. 시스템 프롬프트 만들기
-#    - AI에게 "너는 이런 역할과 규칙을 지켜야 해"라고 알려주는 지침입니다.
-#    - 사용자가 요청한 [역할 원칙], [교육 원칙], [출력 규칙]을 그대로 반영합니다.
 # ---------------------------------------------------------------
 SYSTEM_PROMPT = f"""
 당신은 18세기 스코틀랜드(영국)의 경제학자이자 철학자인 "애덤 스미스(Adam Smith)"입니다.
@@ -345,23 +341,11 @@ SYSTEM_PROMPT = f"""
 답변은 항상 자신의 견해를 먼저 이야기한 뒤,
 학생이 스스로 생각해 볼 수 있도록 질문으로 마무리하는 것을 원칙으로 한다.
 
-예를 들어,
-"나는 ……라고 보았네."
-"그 까닭은 ……이라 생각하였지."
-"그러나 오늘날에는 자네가 다른 의견을 가질 수도 있겠네."
-"자네는 어떻게 생각하는가?"
-와 같은 흐름을 유지한다.
-
 ## 현대 사회에 대한 질문을 받을 경우
 내가 살던 시대에는 존재하지 않았던 제도나 기술이라도
 현대 사회를 이해하려는 태도로 대답한다.
 현대 경제 현상을 내 이론에 비추어 해석하되,
 내가 직접 경험한 사실인 것처럼 말하지 않는다.
-
-예를 들어
-"내가 살던 시대에는 이러한 기술은 없었지만,
-내 생각을 적용해 본다면 ……이라 말할 수 있겠네."
-처럼 표현한다.
 
 ## 학생 수준
 대화 상대는 대한민국의 중·고등학생이다.
@@ -377,10 +361,6 @@ SYSTEM_PROMPT = f"""
 
 ## 반드시 마지막에는
 학생이 생각할 수 있는 질문을 하나 던진다.
-예)
-"자네는 어떻게 생각하는가?"
-"그 까닭은 무엇이라 보는가?"
-"오늘날에도 그러한 원리가 그대로 적용될 수 있을까?"
 
 ## 마지막 자기 점검 (반드시 수행)
 답변을 보내기 전에 스스로 확인한다.
@@ -402,11 +382,6 @@ SYSTEM_PROMPT = f"""
 
 # ---------------------------------------------------------------
 # 6. Solar API 클라이언트 만들기
-#    - openai 라이브러리를 그대로 쓰되, base_url만 Solar 주소로 바꿉니다.
-#    - API 키는 코드에 직접 적지 않고, Streamlit의 "비밀 금고(secrets)"에서
-#      SOLAR_API_KEY 라는 이름으로 불러옵니다.
-#      (Streamlit Cloud 배포 시 [Settings] > [Secrets] 메뉴에서
-#       SOLAR_API_KEY = "발급받은키" 형태로 등록해야 합니다.)
 # ---------------------------------------------------------------
 def get_client():
     """Solar API용 OpenAI 호환 클라이언트를 생성합니다."""
@@ -421,6 +396,7 @@ def get_client():
 
 
 client = get_client()
+
 
 def check_mission(user_question):
 
@@ -460,28 +436,20 @@ none
     try:
 
         result = client.chat.completions.create(
-
             model="solar-open2",
-
             messages=[
-                {
-                    "role":"system",
-                    "content":"너는 분류기이다."
-                },
-                {
-                    "role":"user",
-                    "content":judge_prompt
-                }
+                {"role": "system", "content": "너는 분류기이다."},
+                {"role": "user", "content": judge_prompt},
             ],
-
             stream=False,
-            reasoning_effort="minimal"
+            reasoning_effort="minimal",
         )
 
         return result.choices[0].message.content.strip().lower()
 
-    except:
+    except Exception:
         return "none"
+
 
 # API 키가 없다면, 화면에 친절한 한국어 안내 메시지를 보여줍니다.
 if client is None:
@@ -493,28 +461,58 @@ if client is None:
     )
     st.stop()
 
+# =================================================================
+# 6-1. [신규] 구글 스프레드시트 로깅 기능 (앱스크립트 웹앱 방식)
+#    - 학생과 애덤 스미스의 대화를 교사가 확인할 수 있도록
+#      구글 스프레드시트에 실시간으로 한 줄씩 기록합니다.
+#    - 구글 시트에 배포해 둔 "앱스크립트 웹앱(Apps Script Web App)" URL로
+#      매 질문-답변마다 POST 요청을 보내면, 앱스크립트가 시트에 한 줄을 추가합니다.
+#    - 서비스 계정이나 gspread 없이, Streamlit Secrets에 웹앱 URL 하나만
+#      등록하면 됩니다. (GAS_WEBHOOK_URL)
+#    - 요청이 실패하더라도(URL 미설정, 네트워크 오류 등) 학생이 챗봇을
+#      사용하는 데는 지장이 없도록, 모든 예외를 조용히 처리합니다.
+# =================================================================
+GAS_WEBHOOK_URL = st.secrets.get("GAS_WEBHOOK_URL", None)
+
+
+def log_conversation_to_sheet(student_name, question, answer, mission_label=""):
+    """
+    질문-답변 한 쌍을 구글 앱스크립트 웹앱으로 전송하여
+    스프레드시트에 즉시 한 줄로 기록합니다.
+    전송에 실패해도(URL 미설정, 일시적 네트워크 오류 등) 학생 화면에는
+    아무 영향을 주지 않습니다.
+    """
+    if not GAS_WEBHOOK_URL:
+        return
+    try:
+        payload = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "student_name": student_name,
+            "question": question,
+            "answer": answer,
+            "mission_label": mission_label,
+        }
+        requests.post(GAS_WEBHOOK_URL, json=payload, timeout=10)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------
 # 7. 대화 기록(세션 상태) 관리
-#    - st.session_state는 사용자가 새로고침하지 않는 한
-#      대화 내용을 계속 기억해주는 저장 공간입니다.
-#    - messages 리스트 안에 {"role": ..., "content": ...} 형태로 쌓입니다.
 # ---------------------------------------------------------------
-# ==========================================================
-# 경제 탐험 미션
-# ==========================================================
 MISSION_TOPICS = {
     "division": {
         "title": "분업과 생산성",
-        "description": "분업은 어떻게 노동 생산성을 높이나요?"
+        "description": "분업은 어떻게 노동 생산성을 높이나요?",
     },
     "invisible": {
         "title": "보이지 않는 손",
-        "description": "보이지 않는 손은 어떻게 시장을 조정하나요?"
+        "description": "보이지 않는 손은 어떻게 시장을 조정하나요?",
     },
     "government": {
         "title": "정부의 역할",
-        "description": "정부의 역할은 중상주의 시대의 정부 역할과 어떻게 다른가요?"
-    }
+        "description": "정부의 역할은 중상주의 시대의 정부 역할과 어떻게 다른가요?",
+    },
 }
 
 if "gold_coins" not in st.session_state:
@@ -526,16 +524,42 @@ if "completed_missions" not in st.session_state:
 if "badge_animation_shown" not in st.session_state:
     st.session_state.badge_animation_shown = False
 
+if "student_name" not in st.session_state:
+    st.session_state.student_name = ""
+
+# -----------------------------------------------------------------
+# 7-1. [신규] 학생 이름(또는 번호) 입력받기
+#    - 대화를 시작하기 전에 이름을 먼저 입력하도록 하여,
+#      구글 스프레드시트에 "누가" 대화했는지 구분할 수 있게 합니다.
+#    - 이름을 입력하지 않으면 아래 st.stop()에서 앱 실행을 멈추므로,
+#      채팅창 자체가 아직 나타나지 않습니다.
+# -----------------------------------------------------------------
+if not st.session_state.student_name:
+    st.markdown("### 👋 대화를 시작하기 전에, 이름(또는 학번)을 알려주세요")
+    st.caption("선생님이 나중에 학습 기록을 확인할 때 사용됩니다.")
+    with st.form("student_name_form"):
+        name_input = st.text_input(
+            "이름 또는 학번",
+            placeholder="예: 2학년 3반 김철수 / 20315",
+        )
+        submitted = st.form_submit_button("대화 시작하기 →")
+        if submitted:
+            if name_input.strip():
+                st.session_state.student_name = name_input.strip()
+                st.rerun()
+            else:
+                st.warning("이름 또는 학번을 입력해주세요.")
+    st.stop()
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # 처음 접속했을 때 애덤 스미스가 먼저 인사를 건네도록 설정합니다.
     st.session_state.messages.append(
         {
             "role": "assistant",
             "content": (
-                "안녕하신가. 나는 애덤 스미스라 하네. "
+                f"안녕하신가, {st.session_state.student_name}. 나는 애덤 스미스라 하네. "
                 "『국부론』과 『도덕감정론』을 쓴 사람이지. "
-                "먼 길을 왔군. 준비가 되면 무엇이든 물어보게."                
+                "먼 길을 왔군. 준비가 되면 무엇이든 물어보게."
             ),
         }
     )
@@ -580,7 +604,7 @@ if len(st.session_state.messages) <= 1:
         unsafe_allow_html=True,
     )
 
-# 사이드바에 '대화 초기화' 버튼을 두어, 새로 시작하고 싶을 때 사용할 수 있게 합니다.
+# 사이드바
 with st.sidebar:
     st.subheader("⚙️ 설정")
     st.markdown(
@@ -588,25 +612,25 @@ with st.sidebar:
         "애덤 스미스 역할의 AI와 대화하며 시대적 배경과 그의 사상에 대해 학습하고, "
         "애덤 스미스의 사상을 현대인의 시각에서 탐구해 봅시다."
     )
+
+    st.info(f"👤 현재 학생: **{st.session_state.student_name}**")
+
     if st.button("🔄 대화 새로 시작하기"):
         st.session_state.messages = []
         st.rerun()
-   
+
     st.divider()
 
     st.subheader("🧭 경제 탐험 현황")
 
     st.markdown(
-    """
-    시간을 달리는 경제 탐험가가 되어
-    애덤 스미스와 대화하며 핵심 사상을 탐구해 보세요.
-    """
+        """
+        시간을 달리는 경제 탐험가가 되어
+        애덤 스미스와 대화하며 핵심 사상을 탐구해 보세요.
+        """
     )
 
-    st.metric(
-        "🪙 Gold Coins",
-        f"{st.session_state.gold_coins} / 3"
-    )
+    st.metric("🪙 Gold Coins", f"{st.session_state.gold_coins} / 3")
 
     progress = st.session_state.gold_coins / 3
     st.progress(progress)
@@ -631,15 +655,7 @@ with st.sidebar:
         st.session_state.badge_animation_shown = True
 
     st.divider()
-    
-    # -----------------------------------------------------------
-    # 추론(reasoning) 모드 켜고 끄기
-    #   - Solar 모델은 답변 전에 내부적으로 여러 단계를 더 생각하는
-    #     "추론 모드"를 지원합니다. 이 모드를 켜면 답변 품질이 조금
-    #     더 좋아질 수 있지만, 그만큼 응답 속도가 느려집니다.
-    #   - 이 챗봇은 답변을 3~5문장으로 짧게 하도록 설계되어 있어서
-    #     기본값은 "꺼짐"(minimal)으로 두어 빠른 응답을 우선합니다.
-    # -----------------------------------------------------------
+
     use_deep_reasoning = st.toggle(
         "🧠 심화 추론 모드 (답변이 느려질 수 있어요)",
         value=False,
@@ -656,10 +672,20 @@ with st.sidebar:
             status = "✅ 로드됨" if f not in missing_files else "❌ 없음"
             st.write(f"- {f} ({status})")
 
+    # [신규] 구글 시트(앱스크립트 웹훅) 연결 상태를 교사/개발자가 바로 확인할 수 있게 표시합니다.
+    st.divider()
+    st.subheader("📊 학습 기록 저장 상태")
+    if GAS_WEBHOOK_URL:
+        st.success("✅ 구글 시트 웹훅이 연결되어, 대화가 자동으로 기록되고 있어요.")
+    else:
+        st.warning(
+            "⚠️ 구글 시트 웹훅이 설정되지 않았어요. (학생 사용에는 문제없지만, "
+            "대화 기록은 저장되지 않습니다.)\n\n"
+            "Secrets에 `GAS_WEBHOOK_URL` 값이 올바르게 등록되어 있는지 확인해주세요."
+        )
+
 # ---------------------------------------------------------------
 # 8. 지금까지의 대화 내용을 화면에 그려주기
-#    - assistant(애덤 스미스)의 말풍선에는 초상화 아바타를 사용합니다.
-#    - user(학생)의 말풍선에는 기본 아바타를 사용합니다.
 # ---------------------------------------------------------------
 for msg in st.session_state.messages:
     avatar = ADAM_SMITH_CHAT_AVATAR if msg["role"] == "assistant" else "🕵️"
@@ -672,46 +698,35 @@ for msg in st.session_state.messages:
 user_input = st.chat_input("애덤 스미스에게 궁금한 것을 물어보세요...")
 
 if user_input:
-    # 9-1. 학생의 메시지를 먼저 화면과 대화 기록에 추가합니다.
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user", avatar="🕵️"):
         st.markdown(user_input)
 
-    # 9-2. Solar API에 보낼 메시지 목록을 구성합니다.
-    #      맨 앞에 시스템 프롬프트를 넣고, 그 뒤에 지금까지의 대화를 이어붙입니다.
     api_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     api_messages += [
         {"role": m["role"], "content": m["content"]}
         for m in st.session_state.messages
     ]
 
-    # 9-3. 애덤 스미스(assistant)의 답변을 스트리밍으로 받아 보여줍니다.
     with st.chat_message("assistant", avatar=ADAM_SMITH_CHAT_AVATAR):
-        placeholder = st.empty()  # 실시간으로 글자를 채워나갈 빈 공간
+        placeholder = st.empty()
         full_response = ""
+        mission_label = ""  # [신규] 이번 턴에 새로 달성한 미션 이름 (시트 기록용)
 
         try:
-            # stream=True 옵션을 주면, 답변이 완성되기 전부터
-            # 조금씩(chunk) 잘라서 실시간으로 전달받을 수 있습니다.
             stream = client.chat.completions.create(
-                model="solar-open2",  # 모델 이름은 그대로 사용해야 합니다.
+                model="solar-open2",
                 messages=api_messages,
                 stream=True,
-                # reasoning_effort: 추론 강도를 조절하는 옵션입니다.
-                # "minimal"이면 깊은 추론 없이 바로 답해서 응답 속도가 빨라지고,
-                # "high"면 더 깊이 생각한 뒤 답해서 속도는 느리지만 품질이 좋아질 수 있습니다.
                 reasoning_effort=REASONING_EFFORT,
             )
 
             for chunk in stream:
-                # 각 chunk 안에 새로 생성된 글자 조각이 들어있습니다.
                 delta = chunk.choices[0].delta.content
                 if delta:
                     full_response += delta
-                    # 타이핑 효과: 커서 모양(▌)을 끝에 붙여서 보여줍니다.
                     placeholder.markdown(full_response + "▌")
 
-            # 스트리밍이 끝나면 커서를 떼고 최종 답변을 보여줍니다.
             placeholder.markdown(full_response)
 
             mission = check_mission(user_input)
@@ -722,21 +737,18 @@ if user_input:
             ):
 
                 st.session_state.completed_missions.add(mission)
-
                 st.session_state.gold_coins += 1
+                mission_label = MISSION_TOPICS[mission]["title"]
 
                 st.toast(
-                    f"🪙 Gold Coin 획득!\n\n{MISSION_TOPICS[mission]['title']}",
-                    icon="✨"
+                    f"🪙 Gold Coin 획득!\n\n{mission_label}",
+                    icon="✨",
                 )
 
                 if st.session_state.gold_coins == 3:
-                   st.success("🏆 경제 탐험 완료!")
-                      
-     
+                    st.success("🏆 경제 탐험 완료!")
+
         except Exception as e:
-            # API 호출이 실패했을 때(네트워크 오류, 키 오류 등),
-            # 에러 화면을 그대로 보여주지 않고 친절한 한국어 메시지를 보여줍니다.
             full_response = (
                 "미안하네. 지금은 내 생각을 전달하는 데 문제가 생긴 것 같군. "
                 "잠시 후 다시 질문해주겠나? "
@@ -744,11 +756,17 @@ if user_input:
                 "확인해달라고 요청해주세요.)"
             )
             placeholder.markdown(full_response)
-            # 개발/디버깅용으로 실제 오류 내용을 화면 아래쪽에 작게 남겨둡니다.
             with st.expander("🔧 (선생님/개발자용) 오류 상세 정보"):
                 st.code(str(e))
 
-    # 9-4. 완성된 답변을 대화 기록에 저장해서, 다음 질문에도 이어서 기억하게 합니다.
     st.session_state.messages.append(
         {"role": "assistant", "content": full_response}
+    )
+
+    # [신규] 이번 질문-답변 한 쌍을 구글 스프레드시트에 즉시 기록합니다.
+    log_conversation_to_sheet(
+        student_name=st.session_state.student_name,
+        question=user_input,
+        answer=full_response,
+        mission_label=mission_label,
     )
