@@ -19,12 +19,16 @@
 import os
 import base64
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import streamlit as st
 from openai import OpenAI
 from pathlib import Path
 
 # requests: 구글 앱스크립트(Apps Script) 웹앱으로 대화 기록을 전송하기 위한 라이브러리입니다.
 import requests
+
+# 서버가 어떤 시간대에서 돌아가든, 기록 시간은 항상 한국 표준시(KST)로 남기기 위한 설정입니다.
+KST = ZoneInfo("Asia/Seoul")
 
 # ---------------------------------------------------------------
 # 1. 페이지 기본 설정
@@ -486,7 +490,7 @@ def log_conversation_to_sheet(student_name, question, answer, mission_label=""):
         return
     try:
         payload = {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S"),
             "student_name": student_name,
             "question": question,
             "answer": answer,
@@ -579,7 +583,7 @@ if len(st.session_state.messages) <= 1:
 
         <h2>⌛ 시간을 달리는 경제 탐험가 ⌛</h2>
 
-        <h3>시간 여행이 시작되었습니다.</h3>
+        <h3>시간여행이 완료되었습니다.</h3>
 
         <hr>
 
