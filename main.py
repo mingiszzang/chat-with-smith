@@ -360,7 +360,7 @@ user_input = st.chat_input("애덤 스미스에게 궁금한 것을 물어보세
 if user_input:
     # 9-1. 학생의 메시지를 먼저 화면과 대화 기록에 추가합니다.
     st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user", avatar="🙋"):
+    with st.chat_message("user", avatar="🕵️"):
         st.markdown(user_input)
 
     # 9-2. Solar API에 보낼 메시지 목록을 구성합니다.
