@@ -348,7 +348,7 @@ with st.sidebar:
 #    - user(학생)의 말풍선에는 기본 아바타를 사용합니다.
 # ---------------------------------------------------------------
 for msg in st.session_state.messages:
-    avatar = ADAM_SMITH_CHAT_AVATAR if msg["role"] == "assistant" else "🙋"
+    avatar = ADAM_SMITH_CHAT_AVATAR if msg["role"] == "assistant" else "🕵️"
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
